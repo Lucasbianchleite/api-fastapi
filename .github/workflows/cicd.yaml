@@ -18,9 +18,9 @@ jobs:
       - name: Build da imagem
         run: docker build -t ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:latest .
 
-      - name: Push da imagem
-        run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:latest
-          SHORT_SHA=$(git rev-parse --short HEAD)
-          docker tag ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:latest ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:$SHORT_SHA
-          docker push ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:$SHORT_SHA
+     - name: Push da imagem
+  run: |
+    SHORT_SHA=$(git rev-parse --short HEAD)
+    docker tag ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:latest ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:$SHORT_SHA
+    docker push ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:latest
+    docker push ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:$SHORT_SH
