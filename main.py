@@ -4,7 +4,7 @@ app = FastAPI()
 
 @app.get("/")
 def root():
-    return {"message": "Deploy automático funcionando!"}
+    return {"message": "mudança do main.py"}
 
 
 
