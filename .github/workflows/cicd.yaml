@@ -4,23 +4,29 @@ on:
   push:
     branches:
       - main
-##teste
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
 
       - name: Login no Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build da imagem
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:latest .
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Push da imagem
-        run: |
-          SHORT_SHA=$(git rev-parse --short HEAD)
-          docker tag ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:latest ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:$SHORT_SHA
-          docker push ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:$SHORT_SHA
+      - name: Build e push da imagem Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:latest
+            ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:${{ github.sha }}
