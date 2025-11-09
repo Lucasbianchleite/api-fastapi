@@ -3,5 +3,8 @@ from fastapi import FastAPI
 app = FastAPI()
 
 @app.get("/")
-def read_root():
-    return {"status": "Aplicação rodando!"}
+def root():
+    return {"message": "Deploy automático funcionando!"}
+
+
+
