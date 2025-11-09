@@ -2,31 +2,53 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
 
-jobs:  ##teste
-  build-and-push:
+jobs:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout do código da API
       - name: Checkout do código
         uses: actions/checkout@v4
 
+      # 2️⃣ Login no Docker Hub
       - name: Login no Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      - name: Configurar Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      # 3️⃣ Build da imagem
+      - name: Build da imagem Docker
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:latest .
 
-      - name: Build e push da imagem Docker
-        uses: docker/build-push-action@v5
+      # 4️⃣ Tag e Push da imagem com SHA curto
+      - name: Push da imagem para o Docker Hub
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          docker tag ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:latest ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:$SHORT_SHA
+          docker push ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:$SHORT_SHA
+        env:
+          DOCKER_CLI_EXPERIMENTAL: enabled
+
+      # 5️⃣ Atualizar o repositório de manifests (k8s-deploy)
+      - name: Checkout do repositório de manifests
+        uses: actions/checkout@v4
         with:
-          context: .
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:latest
-            ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:${{ github.sha }}
+          repository: Lucasbianchleite/k8s-deploy
+          token: ${{ secrets.GH_PAT }}
+          path: manifests
+
+      - name: Atualizar imagem no deployment.yaml
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          sed -i "s#image: .*$#image: ${{ secrets.DOCKER_USERNAME }}/lucas-repositore:$SHORT_SHA#g" manifests/deployment.yaml
+
+      - name: Commit e Push da atualização
+        run: |
+          cd manifests
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Atualizando imagem para tag ${SHORT_SHA}"
+          git push origin main
